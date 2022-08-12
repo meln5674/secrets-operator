@@ -14,7 +14,7 @@ Some likewise brain-dead operators will only let you create their custom resourc
 
 ## Custom Resources
 
-This operator provides the `DerivedSecret` resource. This represents a desired Secret that is based on one or more other Secrets and/or ConfigMaps, called "references". You can simply copy fields from references, or you can use Golang templates (with Sprig functions) to create entirely new values. Values that should be set once and only once (e.g. randomly generated) can be set to not overwrite upon update.
+This operator provides the `DerivedSecret` resource. This represents a desired Secret that is based on one or more other Secrets and/or ConfigMaps, called "references". You can simply copy fields from references, or you can use Golang templates (with Sprig functions) to create entirely new values. Values that should be set once and only once (e.g. randomly generated) can be set to not overwrite upon update. Two additions functions "b64bin" and "utf8" are also included for handling binary data from Secret.data and ConfigMap.binaryData.
 
 ```yaml
 apiVersion: secrets.meln5674.github.com/v1alpha1
@@ -53,14 +53,23 @@ spec:
       literal: 'SHH! It's a secret!'
     # Or, apply a template to keys from references
     my-template-key:
-      template: {{ .References.myReference.key }}
+      template: '{{ .References.myReference.key }}'
+      # If you're including this resource in a helm chart, make sure to escape the template
+      template: '{{ "{{ .References.myReference.key }}" }}'
+      # If your key is binary data (e.g. Secret.data or ConfigMap.binaryData,
+      # Sprig's b64enc will not work, as it expects a string
+      # The b64bin function works like b64enc, but accepts bytes instead
+      template: '{{ .References.myReference.binaryKey | b64bin | b64dec }}'
+      # The utf8 function simply re-interprets a binary field as a utf-8 encoded string
+      # (the default encoding for Golang), which acheives the same thing
+      template: '{{ .References.myReference.binaryKey | utf8 }}'
   # Also works with binary (Base64-encoded) data
   data:
     # We can safely use random functions from sprig with the 'overwrite: false' field
     my-random-secret:
       overwrite: false
       template: '{{ randBytes 32 | b64enc }}'
-    # Binary literals are also supported
+    # Binary literals are also supported by using base-64 encoding like in Secret.data or ConfigMap.binaryData
     another-literal-key:
       literal: 'VGhpcyBpcyBhIHNlY3JldCwgd2hhdCBhcmUgeW91IGRvaW5nIGxvb2tpbmcgYXQgaXQ/Cg=='
 

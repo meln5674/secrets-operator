@@ -18,6 +18,7 @@ const (
 var (
 	CustomFuncs = map[string]interface{}{
 		"b64bin": base64.StdEncoding.EncodeToString,
+		"utf8":   func(x []byte) string { return string(x) },
 	}
 )
 

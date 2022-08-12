@@ -17,7 +17,7 @@ spec:
       name: test-secret
   data:
     foo:
-      template: '{{ print "A base64-encoded template with " (.References.test_secret.foo | b64bin | b64dec) | b64enc }}'
+      template: '{{ print "A base64-encoded template with " (.References.test_secret.foo | utf8 ) | b64enc }}'
   stringData:
     baz:
       template: 'A template with {{ .References.test_secret.baz | b64bin | b64dec }}'
