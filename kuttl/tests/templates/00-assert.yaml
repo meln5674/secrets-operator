@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-derived-secret-templates
+data:
+  foo: QSBiYXNlNjQtZW5jb2RlZCB0ZW1wbGF0ZSB3aXRoIGJhcg== # A base64-encoded template with bar
+  baz: QSB0ZW1wbGF0ZSB3aXRoIHF1eA== # A template with qux
+  literal: aXMgYWxzbyBoZXJl # is also here
+---
+apiVersion: secrets.meln5674.github.com/v1alpha1
+kind: DerivedSecret
+metadata:
+  name: test-derived-secret-templates
+status:
+  secretName: test-derived-secret-templates

@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret
+stringData:
+  foo: bar
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-configmap
+data:
+  baz: qux
+---
+apiVersion: secrets.meln5674.github.com/v1alpha1
+kind: DerivedSecret
+metadata:
+  name: test-derived-secret-cleanup
+spec:
+  references:
+  - name: test-secret
+    secretRef:
+      name: test-secret
+  - name: test-configmap
+    configMapRef:
+      name: test-configmap
+  prefab:
+    copyAll: true

@@ -1,0 +1,18 @@
+domain: secrets.meln5674.github.com
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: secrets-operator
+repo: github.com/meln5674/secrets-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: secrets.meln5674.github.com
+  kind: DerivedSecret
+  path: github.com/meln5674/secrets-operator/api/v1alpha1
+  version: v1alpha1
+version: "3"

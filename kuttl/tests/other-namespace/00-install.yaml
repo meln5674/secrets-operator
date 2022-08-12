@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: secrets-operator-integration-test-other-namespace-source
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: secrets-operator-integration-test-other-namespace-target
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: secrets-operator-integration-test-other-namespace-source
+  name: secret-creator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: impersonator
+  namespace: secrets-operator-integration-test-other-namespace-source
+rules:
+- apiGroups: [""]
+  resources: ["serviceaccounts"]
+  verbs: ["impersonate"]
+  resourceNames: ["secret-creator"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: secrets-operator-impersonation
+  namespace: secrets-operator-integration-test-other-namespace-source
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: impersonator
+subjects:
+- kind: ServiceAccount
+  name: secrets-operator-controller-manager
+  namespace: secrets-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: secrets-operator
+  namespace: secrets-operator-integration-test-other-namespace-target
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: secrets-operator-manager-role
+subjects:
+- kind: ServiceAccount
+  name: secret-creator
+  namespace: secrets-operator-integration-test-other-namespace-source
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret
+  namespace: secrets-operator-integration-test-other-namespace-source
+stringData:
+  foo: bar
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-configmap
+  namespace: secrets-operator-integration-test-other-namespace-source
+data:
+  baz: qux
+---
+apiVersion: secrets.meln5674.github.com/v1alpha1
+kind: DerivedSecret
+metadata:
+  name: test-derived-secret-other-namespace
+  namespace: secrets-operator-integration-test-other-namespace-source
+spec:
+  references:
+  - name: test-secret
+    secretRef:
+      name: test-secret
+  - name: test-configmap
+    configMapRef:
+      name: test-configmap
+  prefab:
+    copyAll: true
+  targetName: another-secret-name
+  targetNamespace: secrets-operator-integration-test-other-namespace-target
+  serviceAccountName: secret-creator

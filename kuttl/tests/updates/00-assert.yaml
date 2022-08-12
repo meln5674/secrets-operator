@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-derived-secret-updates
+data:
+  foo: YmFy # bar
+  baz: cXV4 # qux 
+  dont: Y2hhbmdl # change
+---
+apiVersion: secrets.meln5674.github.com/v1alpha1
+kind: DerivedSecret
+metadata:
+  name: test-derived-secret-updates
+status:
+  secretName: test-derived-secret-updates

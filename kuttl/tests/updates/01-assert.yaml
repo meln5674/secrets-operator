@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-derived-secret-updates
+data:
+  foo: cmFi # rab
+  baz: eHVx # xuq 
+  dont: Y2hhbmdl # change

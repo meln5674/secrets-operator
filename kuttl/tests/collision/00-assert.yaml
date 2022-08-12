@@ -1,0 +1,6 @@
+apiVersion: secrets.meln5674.github.com/v1alpha1
+kind: DerivedSecret
+metadata:
+  name: test-derived-secret-collision
+status:
+  error: 'Key foo in reference test-secret was also present in reference test-configmap when doing a prefab.copyAll'

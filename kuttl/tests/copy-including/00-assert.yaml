@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-derived-secret-copy-including
+data:
+  foo: YmFy # bar
+---
+apiVersion: secrets.meln5674.github.com/v1alpha1
+kind: DerivedSecret
+metadata:
+  name: test-derived-secret-copy-including
+status:
+  secretName: test-derived-secret-copy-including
