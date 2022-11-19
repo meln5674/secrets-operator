@@ -5,6 +5,8 @@ metadata:
 data:
   foo: QSBiYXNlNjQtZW5jb2RlZCB0ZW1wbGF0ZSB3aXRoIGJhcg== # A base64-encoded template with bar
   baz: QSB0ZW1wbGF0ZSB3aXRoIHF1eA== # A template with qux
+  bing: QSB0ZW1wbGF0ZSB3aXRoIGJhbmc= # A template with bang
+  bong: QW5vdGhlciB0ZW1wbGF0ZSB3aXRoIGJhbmc= # Another template with bang
   literal: aXMgYWxzbyBoZXJl # is also here
 ---
 apiVersion: secrets.meln5674.github.com/v1alpha1

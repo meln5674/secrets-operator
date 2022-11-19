@@ -11,6 +11,7 @@ const (
 	DerivedFromGroupLabel     = "secrets-operator.meln5674.github.com/derived-from.group"
 	DerivedFromKindLabel      = "secrets-operator.meln5674.github.com/derived-from.kind"
 	DerivedFromVersionLabel   = "secrets-operator.meln5674.github.com/derived-from.version"
+	DefaultIsMap              = false
 )
 
 func DerivedFromLabelValues(obj client.Object) map[string]string {
@@ -91,6 +92,8 @@ type TargetBase struct {
 	// Overwrite indicates that the operator should overwrite any value with the same same when updating the derived Secret or ConfigMap, if false, it will be left alone
 	// +optional
 	Overwrite *bool `json:"overwrite"`
+	// IsMap indicates that a target's template output is not a single field, but instead, should be parsed as a YAML map and the merged into the final map.
+	IsMap *bool `json:"isMap,omitempty"`
 }
 
 // Target specifies a target field in a Secret.stringData or ConfigMap.data

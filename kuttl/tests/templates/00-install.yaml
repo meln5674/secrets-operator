@@ -5,6 +5,7 @@ metadata:
 stringData:
   foo: bar
   baz: qux
+  bing: bang
 ---
 apiVersion: secrets.meln5674.github.com/v1alpha1
 kind: DerivedSecret
@@ -23,3 +24,9 @@ spec:
       template: 'A template with {{ .References.test_secret.baz | b64bin | b64dec }}'
     literal:
       literal: 'is also here'
+    bing:
+      isMap: true
+      template: |
+        bing: 'A template with {{ .References.test_secret.bing | b64bin | b64dec }}'
+        bong: 'Another template with {{ .References.test_secret.bing | b64bin | b64dec }}'
+

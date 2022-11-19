@@ -63,13 +63,20 @@ spec:
       # The utf8 function simply re-interprets a binary field as a utf-8 encoded string
       # (the default encoding for Golang), which acheives the same thing
       template: '{{ .References.myReference.binaryKey | utf8 }}'
+      # If you need to produce multiple keys from the same template, such as when using sprig's
+      # genCA function to randomly generate both a private key and certificate,
+      # Set this to true to instead interpret the output of the template as a YAML document
+      # Containing the actual values.
+      # In this case, the key of this element is ignored, and only used when reporting errors.
+      isMap: false
   # Also works with binary (Base64-encoded) data
   data:
     # We can safely use random functions from sprig with the 'overwrite: false' field
     my-random-secret:
       overwrite: false
       template: '{{ randBytes 32 | b64enc }}'
-    # Binary literals are also supported by using base-64 encoding like in Secret.data or ConfigMap.binaryData
+    # Binary literals are also supported by using base-64 encoding like in
+    # Secret.data or ConfigMap.binaryData
     another-literal-key:
       literal: 'VGhpcyBpcyBhIHNlY3JldCwgd2hhdCBhcmUgeW91IGRvaW5nIGxvb2tpbmcgYXQgaXQ/Cg=='
 
@@ -123,3 +130,22 @@ Requires:
 make test
 # Requires krew, kubectl, 
 make kuttl-tests
+```
+
+## A Theory of Secrets
+
+The Author would like to propose the following conceptual framework for handling secrets within Kubernetes secrets, or IT in general.
+
+There are two types of secrets: Connective and Generative. A Connective secret is defined by a differenty party than the one using it. This could be a database password, an API token, or any sensitive information that another party provides in order to authenticate a potential consumer. A Generative secret, then is one which is defined by the party using it. The secret could then be Connective or Generative based on which perspective you take; a datbase password is Generative to the database that defines it. Treating these two types of secrets is a mistake, as they are fundamentally different.
+
+Generative secrets should, as the name implies, be randomly generated, using a cryptographically secure method, on a once-and-only-once basis. If the secret exists, it should be assumed that it is still valid, which acheives idempotency. If the secret must be rotated, such as a certificate private key, then that should be accomplished by removing the original one, and re-running whatever process generated it in the first place. Connective secrets, on the other hand, should be automatically synchronized from the Generative secret that it is based on. Any system which does not do this runs the risk of breaking that connection, leading to downtime or improper operation. The logical conclusion of this line of reasoning is that the secrets themselves are immaterial. A system should, ideally, be represented statically without any concern to the actual state of any sensitive information it relies on. These secrets are a reflection of a higher level concept. Ideally, it should be possible to encode this directly, declaratively, rather than manually implementing it by manually managing these secrets. This leads to the subject of GitOps.
+
+Within the practice of GitOps, the author has seen three different schools of thought:
+1. Randomly generate a secret on the first update, manually provide the generated secret back into the update process. (Most helm charts offer this)
+2. Encrypt secrets, and use a master secret to automatically decrypt them when they are updated. (e.g. [Sealed Secrets](https://docs.bitnami.com/tutorials/sealed-secrets) or [SOPS](https://github.com/mozilla/sops))
+3. Provide secrets "out of band" (i.e. manually with `kubectl`).
+
+The author believes none of these are correct. The first not only creates a risk of data loss, but it destroys any hope of idempotency, which is highly desirable. The second and third do not have this risk, but lose the desirable property of correctly handling Generative secrets, and the second in particular necessitates providing an insecure default value. The third at least has the property that it will fail to even start if forgotten, unlike the second, and lends itself towards automatic generation, but none of these three methods account for the correct method of handling Connective secrets.
+
+This, the author believes, is where this tool can solve this problem. This tool allows providing not secrets, but a policy of secrets. Generative secrets are correctly handled by using one of the sprig template functions such as `genPrivateKey` or `randBytes` along with `overwrite: false`, and Connective secrets are handled by creating new secrets based on the original Generative secrets. Because `DerivedSecret` resources contain no sensitive information themselves, they can be incorporated into GitOps with zero risk of accidentally commiting secrets.
+

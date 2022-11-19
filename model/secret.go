@@ -7,6 +7,7 @@ import (
 	secretsv1alpha1 "github.com/meln5674/secrets-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 	"strings"
 	templates "text/template"
 )
@@ -169,6 +170,9 @@ func GenerateSecret(cmRefs map[string]corev1.ConfigMap, sRefs map[string]corev1.
 	knownKeys := make(map[string]struct{})
 	context := TemplateContext{References: references}
 	for key, tgt := range src.Spec.Data {
+		if _, collided := knownKeys[key]; collided {
+			return blank, nil, fmt.Errorf("Key %s appeared in multiple locations between data, stringData, and the output of map templates", key)
+		}
 		knownKeys[key] = struct{}{}
 
 		if tgt.Literal != nil {
@@ -189,14 +193,35 @@ func GenerateSecret(cmRefs map[string]corev1.ConfigMap, sRefs map[string]corev1.
 		if err = tpl.Execute(&out, &context); err != nil {
 			return blank, nil, err
 		}
-		target.Data[key], err = base64.StdEncoding.DecodeString(out.String())
-		if err != nil {
-			return blank, nil, fmt.Errorf(`Failed to decode spec.data["%s"] output as base64: %s`, key, err)
+		isMap := secretsv1alpha1.DefaultIsMap
+		if tgt.IsMap != nil {
+			isMap = *tgt.IsMap
 		}
+		if isMap {
+			delete(knownKeys, key)
+			mapData := make(map[string][]byte)
+			err := yaml.Unmarshal([]byte(out.String()), &mapData)
+			if err != nil {
+				return blank, nil, fmt.Errorf(`Failed to parse output of spec.data["%s"] as yaml map of string to base64: %s`, key, err)
+			}
+			for key, value := range mapData {
+				if _, collided := knownKeys[key]; collided {
+					return blank, nil, fmt.Errorf("Key %s appeared in multiple locations between data, stringData, and the output of map templates", key)
+				}
+				knownKeys[key] = struct{}{}
+				target.Data[key] = value
+			}
+		} else {
+			target.Data[key], err = base64.StdEncoding.DecodeString(out.String())
+			if err != nil {
+				return blank, nil, fmt.Errorf(`Failed to decode spec.data["%s"] output as base64: %s`, key, err)
+			}
+		}
+
 	}
 	for key, tgt := range src.Spec.StringData {
 		if _, collided := knownKeys[key]; collided {
-			return blank, nil, fmt.Errorf("Key %s appeared both in data and stringData", key)
+			return blank, nil, fmt.Errorf("Key %s appeared in multiple locations between data, stringData, and the output of map templates", key)
 		}
 		knownKeys[key] = struct{}{}
 
@@ -219,7 +244,27 @@ func GenerateSecret(cmRefs map[string]corev1.ConfigMap, sRefs map[string]corev1.
 		if err = tpl.Execute(&out, &context); err != nil {
 			return blank, nil, err
 		}
-		target.StringData[key] = out.String()
+		isMap := secretsv1alpha1.DefaultIsMap
+		if tgt.IsMap != nil {
+			isMap = *tgt.IsMap
+		}
+		if isMap {
+			delete(knownKeys, key)
+			mapData := make(map[string]string)
+			err := yaml.Unmarshal([]byte(out.String()), &mapData)
+			if err != nil {
+				return blank, nil, fmt.Errorf(`Failed to parse output of spec.stringData["%s"] as yaml map of string to string: %s`, key, err)
+			}
+			for key, value := range mapData {
+				if _, collided := knownKeys[key]; collided {
+					return blank, nil, fmt.Errorf("Key %s appeared in multiple locations between data, stringData, and the output of map templates", key)
+				}
+				knownKeys[key] = struct{}{}
+				target.StringData[key] = value
+			}
+		} else {
+			target.StringData[key] = out.String()
+		}
 	}
 	return target, noOverwrite, nil
 }
